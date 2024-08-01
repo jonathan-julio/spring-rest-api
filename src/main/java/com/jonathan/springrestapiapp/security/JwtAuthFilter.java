@@ -10,6 +10,8 @@ import com.jonathan.springrestapiapp.service.impl.UsuarioServiceImpl;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -26,11 +28,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         this.usuarioService = usuarioService;
     }
 
-    @Override
+     @Override
     protected void doFilterInternal(
             HttpServletRequest httpServletRequest,
             HttpServletResponse httpServletResponse,
             FilterChain filterChain) throws ServletException, IOException {
+
+        httpServletResponse.setHeader("Access-Control-Allow-Origin", "*");
+        httpServletResponse.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,PUT,OPTIONS,PATCH ");
+        httpServletResponse.setHeader("Access-Control-Allow-Headers", "*");
+
+
+                
 
         String authorization = httpServletRequest.getHeader("Authorization");
 

@@ -6,10 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-import java.util.List;
+import com.jonathan.springrestapiapp.enums.AcessoUsuario;
 import com.jonathan.springrestapiapp.enums.UserRole;
-import com.jonathan.springrestapiapp.model.Post;
-import com.jonathan.springrestapiapp.model.Profile;
 
 
 
@@ -19,7 +17,7 @@ import com.jonathan.springrestapiapp.model.Profile;
 @AllArgsConstructor
 @Builder
 @ToString
-public class UsuarioDTO {
-    private Integer id;
-    private String login;
+public class AcessoDTO {
+    private Integer usuarioID;
+    private AcessoUsuario acesso;
 }

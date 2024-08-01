@@ -1,11 +1,10 @@
 package com.jonathan.springrestapiapp.exception;
 
-public class AlgoNaoEncontradoException extends RuntimeException {
+import org.springframework.http.HttpStatus;
 
-    public AlgoNaoEncontradoException(String string) {
-        super(string);
+public class AlgoNaoEncontradoException extends MyException {
+    public AlgoNaoEncontradoException(HttpStatus code, String message) {
+        super(code, message);
     }
-    public AlgoNaoEncontradoException() {
-        super("Post not found");
-    }
+
 }

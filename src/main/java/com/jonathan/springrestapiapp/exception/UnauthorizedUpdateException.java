@@ -1,11 +1,11 @@
 package com.jonathan.springrestapiapp.exception;
 
-public class UnauthorizedUpdateException extends RuntimeException {
-    public UnauthorizedUpdateException() {
-        super("Not authorized to update this post");
+import org.springframework.http.HttpStatus;
+
+public class UnauthorizedUpdateException extends MyException {
+
+    public UnauthorizedUpdateException(HttpStatus code,String message) {
+        super(code, message);
     }
 
-    public UnauthorizedUpdateException(String message) {
-        super(message);
-    }
 }

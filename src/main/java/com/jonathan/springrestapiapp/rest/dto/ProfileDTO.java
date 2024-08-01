@@ -35,6 +35,7 @@ import jakarta.persistence.OneToOne;
 @NoArgsConstructor
 @Builder
 public class ProfileDTO {
+    private Integer id;
     private String texto;
     private String textoSecundario;
     private String about;

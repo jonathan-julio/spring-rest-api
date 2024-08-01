@@ -1,5 +1,8 @@
 package com.jonathan.springrestapiapp.model;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.jonathan.springrestapiapp.rest.dto.UserDTO;
 
 import jakarta.persistence.CascadeType;
@@ -32,7 +35,8 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "person") //opicional caso a tabela tenha nome igual da entidadeou caso use schema!
-
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 public class Person {
     
     @Id

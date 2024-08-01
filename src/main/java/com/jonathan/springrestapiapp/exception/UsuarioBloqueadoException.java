@@ -1,7 +1,11 @@
 package com.jonathan.springrestapiapp.exception;
 
-public class UsuarioBloqueadoException extends RuntimeException {
-    public UsuarioBloqueadoException() {
-        super("Usuario bloqueado.");
+import org.springframework.http.HttpStatus;
+
+public class UsuarioBloqueadoException extends MyException {
+
+
+    public UsuarioBloqueadoException(HttpStatus code,String message) {
+        super(code, message);
     }
 }

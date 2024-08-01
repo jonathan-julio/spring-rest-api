@@ -1,11 +1,12 @@
 package com.jonathan.springrestapiapp.service.impl;
 
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -14,26 +15,29 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import com.jonathan.springrestapiapp.enums.AcessoUsuario;
+import com.jonathan.springrestapiapp.enums.StatusPost;
 import com.jonathan.springrestapiapp.enums.UserRole;
 import com.jonathan.springrestapiapp.exception.AlgoNaoEncontradoException;
+import com.jonathan.springrestapiapp.exception.MyException;
 import com.jonathan.springrestapiapp.exception.RegraNegocioException;
 import com.jonathan.springrestapiapp.exception.SenhaInvalidaException;
-import com.jonathan.springrestapiapp.model.*;
+import com.jonathan.springrestapiapp.model.Log;
+import com.jonathan.springrestapiapp.model.Usuario;
+import com.jonathan.springrestapiapp.rest.dto.AcessoDTO;
 import com.jonathan.springrestapiapp.rest.dto.CredenciaisDTO;
 import com.jonathan.springrestapiapp.rest.dto.LogDTO;
 import com.jonathan.springrestapiapp.rest.dto.PapelDTO;
+import com.jonathan.springrestapiapp.rest.dto.PostDTO;
+import com.jonathan.springrestapiapp.rest.dto.SenhaPatchAdmDTO;
 import com.jonathan.springrestapiapp.rest.dto.SenhaPatchDTO;
+import com.jonathan.springrestapiapp.rest.dto.SenhaPostDTO;
 import com.jonathan.springrestapiapp.rest.dto.UserCreaterDTO;
 import com.jonathan.springrestapiapp.rest.dto.UserDTO;
+import com.jonathan.springrestapiapp.rest.dto.UsuarioDTO;
 import com.jonathan.springrestapiapp.service.Utils;
 
 import jakarta.transaction.Transactional;
 
-
-
-/*
- * interface do spring security serve para definir o carregam, UserDetailsento de usuários através de uma base de dados
- */
 @Component
 public class UsuarioServiceImpl implements UserDetailsService {
 
@@ -43,119 +47,122 @@ public class UsuarioServiceImpl implements UserDetailsService {
     @Autowired
     private Utils utils;
 
-
     public Usuario created(UserCreaterDTO userDto) {
         Usuario usuario = utils.converteUsuarioDTO(userDto);
-        checkPassword(usuario);
+        checkPassword(userDto.getSenha());
         checkUsuario(usuario);
         Usuario user = salvar(criptografar(usuario));
         Log log = new Log(user, "UsuarioServiceImpl.salvarUsuario", "Usuario salvo no BD");
         utils.logService.save(log);
         return user;
+
     }
 
     @Transactional
-    public void checkPassword(Usuario usuario) {
-        if (!utils.isValid(usuario.getSenha())) {
-            throw new RegraNegocioException("Senha de ter no minimo 8 caracteres e incluir 2 numeros");
+    public void checkPassword(String password) {
+        if (!utils.isValid(password)) {
+            throw new SenhaInvalidaException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "A senha deve ter no mínimo 8 caracteres e incluir 2 números.");
         }
     }
 
-    @Transactional
     public void checkUsuario(Usuario usuario) {
         if (utils.usuarioRepository.existsByLogin(usuario.getLogin())) {
-            throw new RegraNegocioException("Login já existe.");
+            throw new RegraNegocioException(HttpStatus.UNAUTHORIZED, "Login já existe.");
+        }
+    }
+
+    public void checkLastPassword(Usuario usuario, SenhaPatchDTO dto) {
+        if (!passwordEncoder.matches(dto.getLastPassword(), usuario.getSenha())) {
+            throw new RegraNegocioException(HttpStatus.BAD_GATEWAY, "Senha anterior incorreta.");
         }
     }
 
     @Transactional
     public Usuario setTipUsuario(Usuario usuario, UserRole tipo) {
-        if (tipo.equals(UserRole.ADMIN)) {
-            Log log = new Log(usuario, "UsuarioServiceImpl.setTipUsuario", "Tentativa de alterar usuario para: " + tipo.name());
+        if (tipo.equals(UserRole.ADMIN) || usuario.getRole().equals(UserRole.ADMIN)) {
+            Log log = new Log(usuario, "UsuarioServiceImpl.setTipUsuario",
+                    "Tentativa de alterar usuario para: " + tipo.name());
             utils.logService.save(log);
-            throw new RegraNegocioException("Isso é uma ditadura so podemos ter um adm");
-            
-        }else{
+            throw new RegraNegocioException(HttpStatus.FORBIDDEN,
+                    "Isso é uma ditadura e " + usuario.getLogin() + " será o único admin.");
+        } else {
             usuario.setRole(tipo);
-            Log log = new Log(usuario, "UsuarioServiceImpl.setTipUsuario", "Usuario teve o tipo mudado para: " + tipo.name());
+            Log log = new Log(usuario, "UsuarioServiceImpl.setTipUsuario",
+                    "Usuario teve o tipo mudado para: " + tipo.name());
             utils.logService.save(log);
             return salvar(usuario);
         }
-        
     }
 
     @Transactional
-    public Usuario setAcesso(Usuario usuario, AcessoUsuario acessoUsuario) {
-        if (acessoUsuario.equals(AcessoUsuario.BLOQUEADO) && usuario.getRole().equals(UserRole.ADMIN)) {
-            throw new RegraNegocioException("Não pode bloquear acesso do admin.");
-        }
-        if (!acessoUsuario.equals(AcessoUsuario.LIBERADO) && !acessoUsuario.equals(AcessoUsuario.BLOQUEADO) ) {
-            throw new RegraNegocioException("Tipo de acesso não permitido.");
-        }else{
-            usuario.setAcesso(acessoUsuario);
-            Log log = new Log(usuario, "UsuarioServiceImpl.setAcesso", "Alterar acesso do usuario para " + acessoUsuario);
-            utils.logService.save(log);
-            return salvar(criptografar(usuario));
-        }
-        
-    }
-    
-    
+    public Usuario setAcesso(AcessoDTO acessoUsuario) {
+        Usuario user = utils.usuarioRepository.findById(acessoUsuario.getUsuarioID())
+                .orElseThrow(() -> new AlgoNaoEncontradoException(HttpStatus.NOT_FOUND, "Usuario não encontrado"));
 
-    public Usuario salvar(Usuario usuario){
+        if (acessoUsuario.getAcesso().equals(AcessoUsuario.BLOQUEADO) && user.getRole().equals(UserRole.ADMIN)) {
+            throw new RegraNegocioException(HttpStatus.UNPROCESSABLE_ENTITY, "Não pode bloquear acesso do admin.");
+        }
+        if (!acessoUsuario.getAcesso().equals(AcessoUsuario.LIBERADO)
+                && !acessoUsuario.getAcesso().equals(AcessoUsuario.BLOQUEADO)) {
+            throw new RegraNegocioException(HttpStatus.UNPROCESSABLE_ENTITY, "Tipo de acesso não permitido.");
+        } else {
+            user.setAcesso(acessoUsuario.getAcesso());
+            Log log = new Log(user, "UsuarioServiceImpl.setAcesso",
+                    "Alterar acesso do usuario para " + acessoUsuario);
+            utils.logService.save(log);
+            return salvar(criptografar(user));
+        }
+    }
+
+    public Usuario salvar(Usuario usuario) {
         return utils.usuarioRepository.save(usuario);
     }
 
-    private Usuario criptografar(Usuario usuario){
+    private Usuario criptografar(Usuario usuario) {
         String senhaCriptografada = passwordEncoder.encode(usuario.getSenha());
         usuario.setSenha(senhaCriptografada);
         return usuario;
     }
 
-    public UserDetails autenticar( CredenciaisDTO credenciais ){
+    public UserDetails autenticar(CredenciaisDTO credenciais) {
         UserDetails userDetails = loadUserByUsername(credenciais.getLogin());
-        Usuario usuario = utils.usuarioRepository.findByLogin(userDetails.getUsername()).get();
-        boolean senhasBatem = passwordEncoder.matches(credenciais.getSenha(), userDetails.getPassword() );
-        if(senhasBatem){
+        Usuario usuario = utils.usuarioRepository.findByLogin(userDetails.getUsername())
+                .orElseThrow(() -> new AlgoNaoEncontradoException(HttpStatus.NOT_FOUND, "Usuário ou senha inválidos"));
+        boolean senhasBatem = passwordEncoder.matches(credenciais.getSenha(), userDetails.getPassword());
+        if (senhasBatem) {
             Log log = new Log(usuario, "UsuarioServiceImpl.autenticar", "Usuario autenticado");
             utils.logService.save(log);
             return userDetails;
+        } else {
+            Log log = new Log(usuario, "UsuarioServiceImpl.autenticar", "Usuario não autenticado");
+            utils.logService.save(log);
+            throw new SenhaInvalidaException(HttpStatus.BAD_REQUEST, "Usuário ou senha inválidos");
         }
-        Log log = new Log(usuario, "UsuarioServiceImpl.autenticar", "Usuario não autenticado");
-        utils.logService.save(log);
-        throw new SenhaInvalidaException();
     }
 
-    /*
-     * Ele é responsável por carregar os detalhes do usuário com base no nome de usuário fornecido.
-     */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-
-         // Consulta ao repositório para obter o usuário com base no nome de usuário fornecido
         Usuario usuario = utils.usuarioRepository.findByLogin(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado na base de dados."));
+                .orElseThrow(() -> new AlgoNaoEncontradoException(HttpStatus.NOT_FOUND, "Usuário ou senha inválidos"));
 
-        // Cria e retorna o objeto UserDetails com os detalhes do usuário
-        return User
-                .builder()
+        return User.builder()
                 .username(usuario.getLogin())
                 .password(usuario.getSenha())
                 .roles(usuario.getRole().name())
                 .build();
-
     }
 
     public UserDTO findById(Integer id) {
         Usuario usuario = utils.usuarioRepository.findById(id)
-        .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado na base de dados."));
-
-            return UserDTO
-                .builder()
+                .orElseThrow(() -> new AlgoNaoEncontradoException(HttpStatus.NOT_FOUND,
+                        "Usuário não encontrado na base de dados."));
+        return UserDTO.builder()
+                .email(usuario.getEmail())
                 .login(usuario.getLogin())
-                .admin(usuario.getRole())
+                .role(usuario.getRole())
                 .person(utils.convertePersonToDTO(usuario.getPerson()))
-                .posts(usuario.getPosts())
+                .posts(utils.convertPostsToDTOs(usuario.getPosts()))
                 .build();
     }
 
@@ -163,40 +170,76 @@ public class UsuarioServiceImpl implements UserDetailsService {
         return utils.usuarioRepository.findByLogin(id);
     }
 
-    public UserDTO  patchPassaword(SenhaPatchDTO dto, String token)  {
+    public UserDTO findDtoByLogin(String id) {
+        Usuario user = utils.usuarioRepository.findByLogin(id)
+                .orElseThrow(() -> new AlgoNaoEncontradoException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
+        UserDTO retorno = utils.converteUsuarioToDTO(user);
+        List<PostDTO> postPublicado = retorno.getPosts().stream()
+                .filter(post -> post.getStatus().equals(StatusPost.PUBLICADO))
+                .collect(Collectors.toList());
+
+        retorno.setPosts(postPublicado);
+        return retorno;
+    }
+
+    public UserDTO patchPassword(SenhaPatchDTO dto, String token) {
         Usuario usuario = utils.getUsuarioByToken(token);
-        usuario.setSenha(dto.getPassword());
-        checkPassword(usuario);
+        checkLastPassword(usuario, dto);
+        changePassword(dto.getPassword(), usuario);
+        return utils.converteUsuarioToDTO(usuario);
+    }
+
+    public UserDTO recoverPassword(SenhaPostDTO dto, String token) {
+        if (!utils.jwt.tokenValido(token)) {
+            throw new RegraNegocioException(HttpStatus.UNAUTHORIZED, "Token expirado.");
+        }
+
+        Usuario usuario = utils.getUsuarioByToken(token);
+        changePassword(dto.getPassword(), usuario);
+        utils.jwt.invalidatedTokens(token);
+        return utils.converteUsuarioToDTO(usuario);
+    }
+
+    public UserDTO patchPasswordAdmin(SenhaPatchAdmDTO dto) {
+        Usuario usuario = utils.usuarioRepository.findById(dto.getUsuarioID())
+                .orElseThrow(() -> new AlgoNaoEncontradoException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
+        changePassword(dto.getPassword(), usuario);
+        return utils.converteUsuarioToDTO(usuario);
+    }
+
+    private UserDTO changePassword(String password, Usuario usuario) {
+        checkPassword(password);
+        usuario.setSenha(password);
         salvar(criptografar(usuario));
         return utils.converteUsuarioToDTO(usuario);
     }
 
-    public UserDTO  patchPassaword(SenhaPatchDTO dto, Integer id)  {
-        Usuario usuario = utils.usuarioRepository.findById(id).orElseThrow(() -> new AlgoNaoEncontradoException("Usuario nao encontrado."));
+    public UserDTO patchPassword(SenhaPatchDTO dto, Integer id) {
+        Usuario usuario = utils.usuarioRepository.findById(id)
+                .orElseThrow(() -> new AlgoNaoEncontradoException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
+        checkPassword(dto.getPassword());
         usuario.setSenha(dto.getPassword());
-        checkPassword(usuario);
         salvar(criptografar(usuario));
         return utils.converteUsuarioToDTO(usuario);
     }
 
-    public UserDTO alterarPapel(PapelDTO dto, String token)  {
-        Usuario _usuario = utils.usuarioRepository.findById(dto.getUsuarioID())
-        .orElseThrow(() -> new AlgoNaoEncontradoException("Usuario nao encontrado."));
-        setTipUsuario(_usuario, dto.getTipo());
-        return  utils.converteUsuarioToDTO(_usuario);
+    public UserDTO alterarPapel(PapelDTO dto, String token) {
+        Usuario usuario = utils.usuarioRepository.findById(dto.getUsuarioID())
+                .orElseThrow(() -> new AlgoNaoEncontradoException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
+        setTipUsuario(usuario, dto.getTipo());
+        return utils.converteUsuarioToDTO(usuario);
     }
 
-    private Usuario converteUsuario(Usuario usuario){
-        return Usuario
-        .builder()
-        .login(usuario.getLogin())
-        .role(usuario.getRole())
-        .person(usuario.getPerson())
-        .build();
+    private Usuario converteUsuario(Usuario usuario) {
+        return Usuario.builder()
+                .login(usuario.getLogin())
+                .role(usuario.getRole())
+                .person(usuario.getPerson())
+                .build();
     }
 
-    public List<UserDTO> getAllBloqueados()  {
-        List<UserDTO> bloqueados = new ArrayList();
+    public List<UserDTO> getAllBloqueados() {
+        List<UserDTO> bloqueados = new ArrayList<>();
         List<Usuario> usuarios = utils.usuarioRepository.findAllByAcesso(1);
         for (Usuario usuario : usuarios) {
             bloqueados.add(utils.converteUsuarioToDTO(usuario));
@@ -204,22 +247,33 @@ public class UsuarioServiceImpl implements UserDetailsService {
         return bloqueados;
     }
 
-    public List<LogDTO> getLogsById(Integer id)  {
+    public List<UsuarioDTO> getAll() {
+        List<UsuarioDTO> usuarioDTOs = new ArrayList<>();
+        List<Usuario> usuarios = utils.usuarioRepository.findAll();
+        for (Usuario usuario : usuarios) {
+            UsuarioDTO user = UsuarioDTO.builder()
+                    .id(usuario.getPerson().getProfile().getId())
+                    .login(usuario.getLogin())
+                    .build();
+            usuarioDTOs.add(user);
+        }
+        return usuarioDTOs;
+    }
+
+    public List<LogDTO> getLogsById(Integer id) {
         List<LogDTO> logsDTO = new ArrayList<>();
-        List<Log> logs = utils.logService.getAllByUsuario(id) ;
+        List<Log> logs = utils.logService.getAllByUsuario(id);
 
         for (Log log : logs) {
-            LogDTO logDTO = new LogDTO(log.getId(), utils.converteUsuarioToDTO(log.getUsuario()), log.getFunction(), log.getChanger(), log.getData());
+            LogDTO logDTO = new LogDTO(log.getId(), utils.converteUsuarioToDTO(log.getUsuario()), log.getFunction(),
+                    log.getChanger(), log.getData());
             logsDTO.add(logDTO);
-            
         }
         return logsDTO;
     }
 
-    public Usuario alterarAcesso(AcessoUsuario acesso, String token)  {
-        Usuario usuario = utils.getUsuarioByToken(token);
-        Usuario _usuario =  setAcesso(usuario, acesso);
-        return converteUsuario(_usuario);
+    public Usuario alterarAcesso(AcessoDTO acesso) {
+        Usuario usuario = setAcesso(acesso);
+        return converteUsuario(usuario);
     }
-
 }

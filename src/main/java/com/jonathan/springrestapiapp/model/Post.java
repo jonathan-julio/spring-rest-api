@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.jonathan.springrestapiapp.enums.StatusPost;
 import com.jonathan.springrestapiapp.rest.dto.UsuarioDTO;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -43,8 +44,10 @@ public class Post {
     private Usuario admin;
     private String img;
     @NotEmpty(message = "{campo.titulo.obrigatorio}")
+    @Column(length=100)
     private String titulo;
     @NotEmpty(message = "{campo.descricao.obrigatorio}")
+    @Column(length=100000)
     private String descricao;
     private String github;
     private StatusPost status;
@@ -58,12 +61,6 @@ public class Post {
     )
     private List<Profile> profile;
 
-    public UsuarioDTO getAdmin(){
-        return UsuarioDTO.builder()
-        .id(this.admin.getId() )
-        .build();
-
-    }
     
     
     

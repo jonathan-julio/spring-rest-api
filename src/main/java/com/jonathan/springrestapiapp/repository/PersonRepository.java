@@ -20,6 +20,7 @@ public interface PersonRepository extends JpaRepository<Person,Integer>{
     
     @Query(value = " select * from person where usuario_id = :id ",nativeQuery = true)
     Optional<Person> findByUserId( @Param("id") int id );
+    
     /*
      * Já tem um entity manager encapsulado que vai fazer as operações de transação!
      */

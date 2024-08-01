@@ -3,6 +3,7 @@ package com.jonathan.springrestapiapp.rest.controllers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.jonathan.springrestapiapp.model.Person;
 import com.jonathan.springrestapiapp.rest.dto.PersonDTO;
+import com.jonathan.springrestapiapp.rest.dto.PersonPatchDTO;
 import com.jonathan.springrestapiapp.service.PersonService;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -41,7 +43,7 @@ public class PersonController {
 
     @GetMapping("{id}")
     public PersonDTO getPersonById( @PathVariable @Valid Integer id ){
-        return personService.getPersonById(id);
+        return personService.getPersonByUserId(id);
     }
 
     //UPDATE
@@ -50,6 +52,13 @@ public class PersonController {
         String authorizationHeader = request.getHeader("Authorization");
         String token = authorizationHeader.substring(7);
         return personService.updatePerson(dto,token);
+    }
+
+    @PatchMapping("patch")
+    public PersonPatchDTO patchPerson(@RequestBody @Valid PersonPatchDTO dto, HttpServletRequest request){
+        String authorizationHeader = request.getHeader("Authorization");
+        String token = authorizationHeader.substring(7);
+        return personService.patchPerson(dto,token);
     }
 
 }

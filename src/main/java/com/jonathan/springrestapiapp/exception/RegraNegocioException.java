@@ -1,8 +1,20 @@
 package com.jonathan.springrestapiapp.exception;
 
-public class RegraNegocioException extends RuntimeException {
+import org.springframework.http.HttpStatus;
 
-    public RegraNegocioException(String message) {
-        super(message);
+
+
+public class RegraNegocioException extends MyException {
+    private String message;
+
+    public RegraNegocioException(HttpStatus code, String message) {
+        super(code,  message);
+        this.message = message;
     }
+
+    @Override
+    public String getMessage() {
+        return message;
+    }
+
 }

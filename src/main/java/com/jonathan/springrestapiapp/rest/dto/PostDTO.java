@@ -9,6 +9,8 @@ import java.util.List;
 
 import com.jonathan.springrestapiapp.enums.StatusPost;
 
+import jakarta.persistence.Lob;
+
 /*
  * {
     "cliente" : 1,
@@ -28,10 +30,11 @@ import com.jonathan.springrestapiapp.enums.StatusPost;
 @NoArgsConstructor
 public class PostDTO {
     private Integer id;
+    private String admin;
     private StatusPost status;
     private String descricao;
     private String github;
-    private String img;
-    private String Titulo;
+    private String img; // Campo para armazenar os dados da imagem
+    private String titulo;
     private List<Integer> profile_ids;
 }

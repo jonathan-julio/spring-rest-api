@@ -1,23 +1,24 @@
 package com.jonathan.springrestapiapp.security;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import com.jonathan.springrestapiapp.model.Usuario;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-
-import org.springframework.beans.factory.annotation.Value;
-
-import org.springframework.stereotype.Service;
-
-import com.jonathan.springrestapiapp.model.Usuario;
-
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Date;
-
-import javax.crypto.SecretKey;
 
 @Service
 public class JwtService {
@@ -28,7 +29,7 @@ public class JwtService {
     @Value("${security.jwt.chave-assinatura}")
     private String chaveAssinatura;
 
-   
+    private Set<String> invalidatedTokens = new HashSet<>();
     
 
     public String gerarToken( Usuario usuario ){
@@ -62,6 +63,9 @@ public class JwtService {
     }
      
     public boolean tokenValido( String token ){
+        if (invalidatedTokens.contains(token)) {
+            return false;
+        }
         try{
             Claims claims = (Claims) obterClaims(token);
             Date dataExpiracao = claims.getExpiration();
@@ -76,6 +80,9 @@ public class JwtService {
     
 
     public String obterLoginUsuario(String token) throws ExpiredJwtException{
+        if (token == null || token.isEmpty() || token.equals("Bearer")) {
+            throw new ExpiredJwtException(null, null, "Token vazio");
+        }
         return (String) (obterClaims(token)).getSubject();
     }
 
@@ -86,5 +93,9 @@ public class JwtService {
         Instant instant = dataHoraExpiracao.atZone(ZoneId.systemDefault()).toInstant(); //localdatetime to objeto instante
         Date data = Date.from(instant); //a forma de passar para o jwt a data de expiração 
         return data;
+    }
+
+    public void invalidatedTokens(String token) {
+        invalidatedTokens.add(token);
     }
 }

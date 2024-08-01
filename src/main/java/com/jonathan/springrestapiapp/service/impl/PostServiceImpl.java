@@ -1,14 +1,21 @@
+// Separando responsabilidades em diferentes classes
+
 package com.jonathan.springrestapiapp.service.impl;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.jonathan.springrestapiapp.enums.StatusPost;
 import com.jonathan.springrestapiapp.exception.AlgoNaoEncontradoException;
 import com.jonathan.springrestapiapp.exception.RegraNegocioException;
 import com.jonathan.springrestapiapp.exception.UnauthorizedUpdateException;
+import com.jonathan.springrestapiapp.model.Image;
 import com.jonathan.springrestapiapp.model.Log;
 import com.jonathan.springrestapiapp.model.Post;
 import com.jonathan.springrestapiapp.model.Profile;
@@ -17,162 +24,140 @@ import com.jonathan.springrestapiapp.repository.PostRepository;
 import com.jonathan.springrestapiapp.rest.dto.PostDTO;
 import com.jonathan.springrestapiapp.rest.dto.PostDescPatchDTO;
 import com.jonathan.springrestapiapp.rest.dto.PostUsersPatchDTO;
-import com.jonathan.springrestapiapp.security.JwtService;
+import com.jonathan.springrestapiapp.service.ImageService;
 import com.jonathan.springrestapiapp.service.LogService;
 import com.jonathan.springrestapiapp.service.PostService;
 import com.jonathan.springrestapiapp.service.ProfileService;
 import com.jonathan.springrestapiapp.service.Utils;
 
-
-
-@Component
+@Service
 public class PostServiceImpl implements PostService {
 
     @Autowired
-    PostRepository postRepository;
+    private PostRepository postRepository;
 
     @Autowired
-    UsuarioServiceImpl userService;
+    private ProfileService profileService;
 
     @Autowired
-    ProfileService profileService;
+    private Utils utils;
+
+    
 
     @Autowired
-    Utils utils;
+    private LogService logService;
 
     @Override
-    public Post save(PostDTO post, String token) {
-        List<Profile> profiles = new ArrayList<>();
-
+    public Post save(PostDTO postDTO, MultipartFile file, String token) {
         Usuario usuario = utils.getUsuarioByToken(token);
-        Profile usuarioProfile = profileService.getClienteById(usuario.getId());
-        if (usuarioProfile != null) {
-            profiles.add(usuarioProfile);
-        }
-        if (post.getProfile_ids() != null) {
-            for (Integer id : post.getProfile_ids()) {
+        List<Profile> profiles = getProfilesFromDTO(postDTO, usuario);
+        String imageUrl = utils.saveImage(file);
+        Post post = buildPostFromDTO(postDTO, profiles, usuario, imageUrl);
+
+        logService.save(new Log(usuario, "PostServiceImpl.save", "Novo post: " + post.getId()));
+
+        return postRepository.save(post);
+    }
+
+    @Override
+    public PostDTO getById(Integer id) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> //se nao achar lança o erro!
+                new AlgoNaoEncontradoException(HttpStatus.NOT_FOUND,
+                        "Publicação não encontrado"));
+        return utils.converPostToDTO(post);
+    }
+
+    @Override
+    public Post updatePostDesc(PostDescPatchDTO postDescPatchDTO, String token) {
+        Post post = getPostById(postDescPatchDTO.getId());
+        utils.validateAdmin(post, token);
+        post.setDescricao(postDescPatchDTO.getDescricao());
+        return postRepository.save(post);
+    }
+
+    @Override
+    public Post updateUsersPost(PostUsersPatchDTO postUsersPatchDTO, String token) {
+        Post post = getPostById(postUsersPatchDTO.getId());
+        utils.validateAdmin(post, token);
+        List<Profile> profiles = getProfilesByIds(postUsersPatchDTO.getUsers());
+        post.setProfile(profiles);
+        return postRepository.save(post);
+    }
+
+    @Override
+    public PostDTO deletePost(Integer id, String token) {
+        Post post = getPostById(id);
+        utils.validateAdmin(post, token);
+        post.setStatus(StatusPost.DELETADO);
+        postRepository.save(post);
+        logService.save(new Log(utils.getUsuarioByToken(token), "PostServiceImpl.deletePost", "Post deletado: " + id));
+        return utils.converPostToDTO(post);
+    }
+
+    @Override
+    public Post updatePost(PostDTO postDTO, MultipartFile file, String token) {
+        Post post = getPostById(postDTO.getId());
+        utils.validateAdmin(post, token);
+
+        List<Profile> profiles = getProfilesFromDTO(postDTO, post.getAdmin());
+        String imageUrl = file != null ? utils.saveImage(file) : post.getImg();
+
+        post.setDescricao(postDTO.getDescricao());
+        post.setGithub(postDTO.getGithub());
+        post.setImg(imageUrl);
+        post.setProfile(profiles);
+        post.setStatus(postDTO.getStatus());
+        post.setTitulo(postDTO.getTitulo());
+
+        return postRepository.save(post);
+    }
+
+    @Override
+    public List<PostDTO> getAllPost(String token) {
+        Usuario usuario = utils.getUsuarioByToken(token);
+        List<Post> posts = postRepository.findPostsByProfileId(usuario.getPerson().getProfile().getId());
+        return utils.convertPostsToDTOs(posts);
+    }
+
+    private List<Profile> getProfilesFromDTO(PostDTO postDTO, Usuario admin) {
+        List<Profile> profiles = new ArrayList<>();
+        profiles.add(profileService.getClienteById(admin.getId()));
+        if (postDTO.getProfile_ids() != null) {
+            for (Integer id : postDTO.getProfile_ids()) {
                 Profile profile = profileService.getClienteById(id);
-                if (profile != null && !profiles.contains(profile)) { 
+                if (profile != null && !profiles.contains(profile)) {
                     profiles.add(profile);
                 }
             }
         }
-     
-        Post _post = Post.builder()
-            .descricao(post.getDescricao())
-            .github(post.getGithub())
-            .img(post.getImg())
-            .profile(profiles)
-            .status(post.getStatus()) 
-            .titulo(post.getTitulo())
-            .admin(usuario) 
-            .build();
-
-        Log log = new Log(usuario, "PostServiceImpl.save", "Novo post: " + _post.toString() );
-        utils.logService.save(log);
-
-        return postRepository.save(_post);
+        return profiles;
     }
 
-    @Override
-    public Post getById(Integer id) {
-        return postRepository.findById(id)
-                .orElseThrow(() ->
-                        new AlgoNaoEncontradoException());
-    }
-
-    
-    public Post updatePostDesc(PostDescPatchDTO DTO, String token) {
-        Post post = getPostById(DTO.getId());
-        utils.validateAdmin(post, token);
-        return updatePostDescription(post, DTO.getDescricao(), token);
-    }
-
-    public Post updateUsersPost(PostUsersPatchDTO DTO, String token) {
-        Post post = getPostById(DTO.getId());
-        utils.validateAdmin(post, token);
-        List<Profile> users = getProfilesByIds(DTO.getUsers());
-        return updatePostUsers(post, users, token);
-    }
-
-    @Override
-    public Post deletePost(Integer ID, String token) {
-        Post post = getPostById(ID);
-        utils.validateAdmin(post, token);
-        return deletePostEnum(post, StatusPost.DELETADO, token);
-    }
-
-    @Override
-    public Post updatePost(PostDTO DTO, String token) {
-        return postRepository.findById(DTO.getId()).map(_post -> {
-            utils.validateAdmin(_post, token);
-            List<Profile> profiles = profileService.findAllById(DTO.getProfile_ids());
-            _post.setDescricao(DTO.getDescricao());
-            _post.setGithub(DTO.getGithub());
-            _post.setImg(DTO.getImg());
-            _post.setProfile(profiles);
-            _post.setStatus(DTO.getStatus());
-            _post.setTitulo(DTO.getTitulo());
-            Usuario usuario = utils.getUsuarioByToken(token);
-            Log log = new Log(usuario, "PostServiceImpl.deletePostEnum", "Post editado para: " + _post.toString() );
-            utils.logService.save(log);
-            return postRepository.save(_post);
-        }).orElseThrow(() -> new AlgoNaoEncontradoException());
-            
-    }
-
-    private Post deletePostEnum(Post post, StatusPost status, String token) {
-        return postRepository.findById(post.getId()).map(_post -> {
-            _post.setStatus(status);
-            Usuario usuario = utils.getUsuarioByToken(token);
-            Log log = new Log(usuario, "PostServiceImpl.deletePostEnum", "Post editado para: " + _post.toString() );
-            utils.logService.save(log);
-            return postRepository.save(_post);
-        }).orElseThrow(() -> new AlgoNaoEncontradoException());
-    }
-
-
-    private Post updatePostDescription(Post post, String descricao, String token) {
-        return postRepository.findById(post.getId()).map(_post -> {
-            Usuario usuario = utils.getUsuarioByToken(token);
-            Log log = new Log(usuario, "PostServiceImpl.updatePostDescription", "Post editado para: " + _post.toString() );
-            utils.logService.save(log);
-            _post.setDescricao(descricao);
-            return postRepository.save(_post);
-        }).orElseThrow(() -> new AlgoNaoEncontradoException());
+    private Post buildPostFromDTO(PostDTO postDTO, List<Profile> profiles, Usuario admin, String imageUrl) {
+        return Post.builder()
+                .descricao(postDTO.getDescricao())
+                .github(postDTO.getGithub())
+                .img(imageUrl)
+                .status(postDTO.getStatus())
+                .titulo(postDTO.getTitulo())
+                .profile(profiles)
+                .admin(admin)
+                .build();
     }
 
     private Post getPostById(Integer id) {
-        @SuppressWarnings("deprecation")
-        Post post = postRepository.getById(id);
-        return post;
+        return postRepository.findById(id)
+                .orElseThrow(() -> //se nao achar lança o erro!
+                new AlgoNaoEncontradoException(HttpStatus.NOT_FOUND,
+                        "Publicação não encontrado"));
     }
-    
 
-    private List<Profile> getProfilesByIds(List<Integer> userIds) {
-        List<Profile> users = new ArrayList<>();
-        for (Integer id : userIds) {
-            users.add(profileService.getClienteById(id));
+    private List<Profile> getProfilesByIds(List<Integer> profileIds) {
+        List<Profile> profiles = new ArrayList<>();
+        for (Integer id : profileIds) {
+            profiles.add(profileService.getClienteById(id));
         }
-        return users;
+        return profiles;
     }
-
-    
-    private Post updatePostUsers(Post post, List<Profile> users, String token ) {
-        return postRepository.findById(post.getId()).map(_post -> {
-            _post.setProfile(users);
-            Usuario usuario = utils.getUsuarioByToken(token);
-            Log log = new Log(usuario, "PostServiceImpl.updatePostUsers", "Post editado para: " + _post.toString() );
-            utils.logService.save(log);
-            return postRepository.save(_post);
-        }).orElseThrow(() -> new AlgoNaoEncontradoException( ));
-    }
-
-    @Override
-    public List<Post> getAllPost(String token) {
-        Usuario usuario = utils.getUsuarioByToken(token);
-        List<Post> posts = postRepository.findPostsByProfileId(usuario.getPerson().getProfile().getId());
-        return posts;
-    }
-    
 }

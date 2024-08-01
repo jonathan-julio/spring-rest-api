@@ -19,8 +19,10 @@ import com.jonathan.springrestapiapp.model.Post;
 @Builder
 @ToString
 public class UserDTO {
+    private Integer id;
     private String login;
-    private UserRole admin;
+    private String email;
+    private UserRole role;
     private PersonDTO person;
-    private List<Post> posts;
+    private List<PostDTO> posts;
 }

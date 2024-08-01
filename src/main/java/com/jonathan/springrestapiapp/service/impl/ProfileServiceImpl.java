@@ -1,10 +1,12 @@
 package com.jonathan.springrestapiapp.service.impl;
 
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import com.jonathan.springrestapiapp.exception.AlgoNaoEncontradoException;
@@ -40,32 +42,39 @@ public class  ProfileServiceImpl implements ProfileService {
         return profileRepository
                 .findById(id)
                 .orElseThrow(() -> //se nao achar lança o erro!
-                        new AlgoNaoEncontradoException(
+                        new AlgoNaoEncontradoException(HttpStatus.NOT_FOUND,
                                 "Cliente não encontrado"));
     }
 
     @Override
-    public Usuario updatProfile(ProfileDTO profile, String token) {
+    public Profile getClienteByIdUser(Integer id ){
+        return profileRepository
+                .findByUserId(id)
+                .orElseThrow(() -> //se nao achar lança o erro!
+                        new AlgoNaoEncontradoException(HttpStatus.NOT_FOUND,
+                                "Cliente não encontrado"));
+    }
+
+    @Override
+    public ProfileDTO updatProfile(ProfileDTO dto, String token) {
         String usuarioString =  utils.jwt.obterLoginUsuario(token);
-        Optional<Usuario> usuario = usuarioServiceImpl.findByLogin(usuarioString);
+        Usuario usuario = usuarioServiceImpl.findByLogin(usuarioString).orElseThrow(() -> //se nao achar lança o erro!
+        new AlgoNaoEncontradoException(HttpStatus.NOT_FOUND,
+                "Cliente não encontrado"));
+        Profile profile = profileRepository.findById(usuario.getPerson().getProfile().getId()).orElseThrow(() -> //se nao achar lança o erro!
+        new AlgoNaoEncontradoException(HttpStatus.NOT_FOUND,
+                "Perfil não encontrado"));
        
-        Log log = new Log(usuario.get(), "ProfileServiceImpl.updatProfile", "Update profile de: " + usuario.get().getPerson().getProfile().toString() );
-        utils.logService.save(log);
+        /* Log log = new Log(usuario.get(), "ProfileServiceImpl.updatProfile", "Update profile de: " + usuario.get().getPerson().getProfile().toString() );
+        utils.logService.save(log); */
        
-        usuario.get().getPerson().setProfile(Profile
-        .builder()
-        .about(profile.getAbout())
-        .background(profile.getBackground())
-        .color(profile.getColor())
-        .post(usuario.get().getPosts())
-        .build());
-        return usuarioServiceImpl.salvar(usuario.get());
+        profile.setAbout(dto.getAbout());
+        profile.setBackground(dto.getBackground());
+        profile.setColor(dto.getColor());
+        profile.setTexto(dto.getTexto());
+        profile.setTextoSecundario(dto.getTextoSecundario());
+        return utils.converteProfileToDTO(profileRepository.save(profile)) ;
 
         
     };
-
-    public List<Profile> findAllById (List<Integer> ids){
-        return profileRepository.findAllById(ids);
-    }
-
 }

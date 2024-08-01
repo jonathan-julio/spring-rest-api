@@ -56,6 +56,11 @@ public class Usuario {
     @Column
     @NotEmpty(message = "{campo.senha.obrigatorio}")
     private String senha;
+
+    @Column
+    @NotEmpty(message = "{campo.email.obrigatorio}")
+    private String email;
+
     @Column
     private UserRole role;
     @Column
@@ -81,6 +86,8 @@ public class Usuario {
             }
         }
     }
+
+    
     
 /* 
     public Collection<? extends GrantedAuthority> getAuthorities() {

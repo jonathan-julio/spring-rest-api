@@ -27,6 +27,17 @@ CREATE TABLE IF NOT EXISTS  profile (
   texto_secundario VARCHAR(255)
 );
 
+-- Estrutura para tabela `log`
+/* CREATE TABLE IF NOT EXISTS  image (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  image tinyblob DEFAULT NULL
+); */
+
+CREATE TABLE IF NOT EXISTS image (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    image LONGBLOB
+);
+
 -- Estrutura para tabela `post`
 CREATE TABLE IF NOT EXISTS  post (
   admin_id INT,
@@ -50,14 +61,14 @@ CREATE TABLE IF NOT EXISTS  log (
 
 
 -- Despejando dados para a tabela `usuario`
-INSERT INTO usuario (acesso, role, login, senha) VALUES
-( 0, 0, 'johndoe', '$2a$10$3ijxAnWdsvBZRG54.jP/2uKL2YNwRE6hVkhKb/gNcYp/OMQiyeE7u');
-INSERT INTO usuario (acesso, role, login, senha) VALUES
-( 1, 1, 'janedoe', '$2a$10$Eh/oBP6O85lQq8vPQfaoJeL4.nl2d/qp/FIYAMU61gExeFxdsZdeC');
-INSERT INTO usuario (acesso, role, login, senha) VALUES
-( 0, 2, 'samsmith', '$2a$10$wA1G8Q9s2N0u2.ZxJmHpeOB5P9yHMeNRNmRFOEhM.V4fOeYFjqE4W');
-INSERT INTO usuario (acesso, role, login, senha) VALUES
-( 1, 3, 'emilyjones', '$2a$10$tq.X8/0cDL9t.SXwOv.V1OSD71q7e7Zx/3EvX1L7u3O/Q8X0Eve.u');
+INSERT INTO usuario (acesso, role, login, senha ,email ) VALUES
+( 0, 0, 'johndoe', '$2a$10$3ijxAnWdsvBZRG54.jP/2uKL2YNwRE6hVkhKb/gNcYp/OMQiyeE7u', 'okaynatan@gmail.com');
+INSERT INTO usuario (acesso, role, login, senha ,email ) VALUES
+( 1, 1, 'janedoe', '$2a$10$Eh/oBP6O85lQq8vPQfaoJeL4.nl2d/qp/FIYAMU61gExeFxdsZdeC', 'email@mail.com');
+INSERT INTO usuario (acesso, role, login, senha ,email ) VALUES
+( 0, 2, 'samsmith', '$2a$10$3ijxAnWdsvBZRG54.jP/2uKL2YNwRE6hVkhKb/gNcYp/OMQiyeE7u', 'email@mail.com');
+INSERT INTO usuario (acesso, role, login, senha ,email ) VALUES
+( 1, 3, 'emilyjones', '$2a$10$3ijxAnWdsvBZRG54.jP/2uKL2YNwRE6hVkhKb/gNcYp/OMQiyeE7u', 'email@mail.com');
 
 
 
@@ -74,18 +85,41 @@ INSERT INTO person (usuario_id, data, nome, sexo) VALUES
 
 
 -- Despejando dados para a tabela `profile`
-INSERT INTO profile (id ,person_id, about, background, color, texto, texto_secundario) VALUES
-(1, 1, 'Passionate about coding and technology.', 'white', 'blue', 'Hello, I m John!', 'Software Developer at XYZ Corp.');
-INSERT INTO profile (id ,person_id, about, background, color, texto, texto_secundario) VALUES
-(2, 2, 'Lover of art, design, and innovation.', 'lightgrey', 'purple', 'Hi, I m Jane!', 'Graphic Designer at Creative Studio.');
-INSERT INTO profile (id ,person_id, about, background, color, texto, texto_secundario) VALUES
-(3, 3, 'Enthusiastic about data science and AI.', 'black', 'green', 'Hey, I m Sam!', 'Data Scientist at Tech Analytics.');
-INSERT INTO profile (id ,person_id, about, background, color, texto, texto_secundario) VALUES
-(4, 4, 'Passionate about marketing and brand strategy.', 'beige', 'red', 'Hello, I m Emily!', 'Marketing Specialist at BrandCorp.');
+INSERT INTO profile (id, person_id, about, background, color, texto, texto_secundario) 
+VALUES (1, 1, 'Passionate about coding and technology.', '#FFFFFF', '#0000FF', 'Hello, I m John!', 'Software Developer at XYZ Corp.');
+
+INSERT INTO profile (id, person_id, about, background, color, texto, texto_secundario) 
+VALUES (2, 2, 'Lover of art, design, and innovation.', '#D3D3D3', '#800080', 'Hi, I m Jane!', 'Graphic Designer at Creative Studio.');
+
+INSERT INTO profile (id, person_id, about, background, color, texto, texto_secundario) 
+VALUES (3, 3, 'Enthusiastic about data science and AI.', '#000000', '#008000', 'Hey, I m Sam!', 'Data Scientist at Tech Analytics.');
+
+INSERT INTO profile (id, person_id, about, background, color, texto, texto_secundario) 
+VALUES (4, 4, 'Passionate about marketing and brand strategy.', '#F5F5DC', '#FF0000', 'Hello, I m Emily!', 'Marketing Specialist at BrandCorp.');
+
+
+
+
 
 -- Despejando dados para a tabela `post`
 INSERT INTO post (admin_id, status, descricao, github, img, titulo) VALUES
-( 1, 0, 'Este eh um projeto exemplo.', 'www.github.com', '/img/linkimg.jpg', 'Post 01');
+( 1, 0, 'Este eh um projeto exemplo.', 'www.github.com', ' https://80bc-177-89-225-229.ngrok-free.app/image/monochrome-image-8598798_640.jpg', 'Post 01');
+INSERT INTO post (admin_id, status, descricao, github, img, titulo) VALUES
+( 1, 0, 'Este eh outro projeto exemplo.', 'www.github.com', ' https://80bc-177-89-225-229.ngrok-free.app/image/monochrome-image-8598798_640.jpg', 'Post 02');
+INSERT INTO post (admin_id, status, descricao, github, img, titulo) VALUES
+( 1, 0, 'Este eh outro projeto exemplo.', 'www.github.com', ' https://80bc-177-89-225-229.ngrok-free.app/image/monochrome-image-8598798_640.jpg', 'Post 03');
+
+
+
+-- Despejando dados para a tabela `post`
+INSERT INTO PROFILE_POST  (POST_ID, PROFILE_ID) VALUES
+( 1, 1);
+INSERT INTO PROFILE_POST  (POST_ID, PROFILE_ID) VALUES
+( 2, 1);
+INSERT INTO PROFILE_POST  (POST_ID, PROFILE_ID) VALUES
+( 2, 2);
+INSERT INTO PROFILE_POST  (POST_ID, PROFILE_ID) VALUES
+( 3, 1);
 
 -- Despejando dados para a tabela `log`
 INSERT INTO log (usuario_id, data, changer, function) VALUES

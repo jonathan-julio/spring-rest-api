@@ -12,7 +12,7 @@ public interface ProfileService {
 
      public Profile save(Profile profile);
      public Profile getClienteById(Integer id);
-     public Usuario updatProfile(ProfileDTO profile, String token);
-     public List<Profile> findAllById (List<Integer> ids);
+     public Profile getClienteByIdUser(Integer id);
+     public ProfileDTO updatProfile(ProfileDTO profile, String token);
      
 }

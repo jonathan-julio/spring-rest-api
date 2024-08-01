@@ -1,7 +1,12 @@
 package com.jonathan.springrestapiapp.exception;
 
-public class SenhaInvalidaException extends RuntimeException {
-    public SenhaInvalidaException() {
-        super("Senha inválida");
+import org.springframework.http.HttpStatus;
+
+
+
+public class SenhaInvalidaException extends MyException {
+
+    public SenhaInvalidaException(HttpStatus code,String message) {
+        super( code ,message);
     }
 }

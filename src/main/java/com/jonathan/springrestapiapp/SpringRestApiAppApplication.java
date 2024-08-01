@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
 public class SpringRestApiAppApplication {
 
 	public static void main(String[] args) {
+		//System.setProperty("spring.devtools.restart.enabled", "false");
 		SpringApplication.run(SpringRestApiAppApplication.class, args);
 	}
 
