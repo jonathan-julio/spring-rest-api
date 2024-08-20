@@ -37,7 +37,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 
-
 @Service
 public class Utils {
 
@@ -53,45 +52,42 @@ public class Utils {
     @Autowired
     ImageService imageService;
 
-
-
     public Usuario converteUsuarioDTO(UserCreaterDTO dto) {
         Usuario usuario = Usuario.builder()
-        .acesso(AcessoUsuario.LIBERADO)
-        .role(UserRole.USER)
-        .email(dto.getEmail()  )
-        .login(dto.getLogin())
-        .senha(dto.getSenha())
-        .person(convertePersonDTO(dto.getPerson()))
-        .build();
+                .acesso(AcessoUsuario.LIBERADO)
+                .role(UserRole.USER)
+                .email(dto.getEmail())
+                .login(dto.getLogin())
+                .senha(dto.getSenha())
+                .person(convertePersonDTO(dto.getPerson()))
+                .build();
         return usuario;
     }
 
-
     public Person convertePersonDTO(PersonDTO dto) {
         Person person = Person.builder()
-        .nome(dto.getNome())
-        .data(dto.getData())
-        .sexo(dto.getSexo())
-        .profile(converteProfileDTO(dto.getProfile() ))
-        .build();
+                .nome(dto.getNome())
+                .data(dto.getData())
+                .sexo(dto.getSexo())
+                .profile(converteProfileDTO(dto.getProfile()))
+                .build();
         return person;
     }
 
-    public String saveImage(MultipartFile file ){
+    public String saveImage(MultipartFile file) {
         Image img = new Image();
         try {
             img.setImage(file.getBytes());
             return " https://80bc-177-89-225-229.ngrok-free.app/image/view/" + imageService.save(img).getId();
-             
+
         } catch (IOException e) {
             e.printStackTrace();
             return " https://80bc-177-89-225-229.ngrok-free.app/image/view/1";
-        }        
+        }
     }
 
     @SuppressWarnings("null")
-    public String salveFile(MultipartFile file){
+    public String salveFile(MultipartFile file) {
         if (file.isEmpty()) {
             return "Arquivo não enviado.";
         }
@@ -126,54 +122,54 @@ public class Utils {
         }
     }
 
-    
-
     public Profile converteProfileDTO(ProfileDTO dto) {
         Profile profile = Profile.builder()
-        .background(dto.getBackground())
-        .about(dto.getAbout())
-        .color(dto.getColor())
-        .texto(dto.getTexto())
-        .textoSecundario(dto.getTextoSecundario())
-        .build();
+                .background(dto.getBackground())
+                .about(dto.getAbout())
+                .color(dto.getColor())
+                .texto(dto.getTexto())
+                .textoSecundario(dto.getTextoSecundario())
+                .isHtml(dto.getIsHtml().equals("true"))
+                .html(dto.getHtml())
+                .build();
         return profile;
     }
 
     public UserDTO converteUsuarioToDTO(Usuario usuario) {
         UserDTO dto = UserDTO.builder()
-        .id(usuario.getId())
-        .email(usuario.getEmail())
-        .login(usuario.getLogin())
-        .role(usuario.getRole())
-        .person(convertePersonToDTO(usuario.getPerson()))
-        .posts(convertPostsToDTOs(usuario.getPosts()))
-        .build();
+                .id(usuario.getId())
+                .email(usuario.getEmail())
+                .login(usuario.getLogin())
+                .role(usuario.getRole())
+                .person(convertePersonToDTO(usuario.getPerson()))
+                .posts(convertPostsToDTOs(usuario.getPosts()))
+                .build();
         return dto;
     }
 
-
     public PersonDTO convertePersonToDTO(Person person) {
         PersonDTO dto = PersonDTO.builder()
-        .nome(person.getNome())
-        .data(person.getData())
-        .sexo(person.getSexo())
-        .profile(converteProfileToDTO(person.getProfile()))
-        .build();
+                .nome(person.getNome())
+                .data(person.getData())
+                .sexo(person.getSexo())
+                .profile(converteProfileToDTO(person.getProfile()))
+                .build();
         return dto;
     }
 
     public ProfileDTO converteProfileToDTO(Profile profile) {
         ProfileDTO dto = ProfileDTO.builder()
-        .id(profile.getId())
-        .background(profile.getBackground())
-        .about(profile.getAbout())
-        .color(profile.getColor())
-        .texto(profile.getTexto())
-        .textoSecundario(profile.getTextoSecundario())
-        .build();
+                .id(profile.getId())
+                .background(profile.getBackground())
+                .about(profile.getAbout())
+                .color(profile.getColor())
+                .texto(profile.getTexto())
+                .textoSecundario(profile.getTextoSecundario())
+                .html(profile.getHtml())
+                .isHtml(profile.isHtml() ? "true" : "false")
+                .build();
         return dto;
     }
-
 
     public List<Integer> convertProfList(List<Profile> profiles) {
         List<Integer> dto = new ArrayList<>();
@@ -183,8 +179,7 @@ public class Utils {
         return dto;
     }
 
-    
-    public PostDTO converPostToDTO( Post post){
+    public PostDTO converPostToDTO(Post post) {
         PostDTO dto = new PostDTO();
         dto.setAdmin(post.getAdmin().getLogin());
         dto.setDescricao(post.getDescricao());
@@ -197,9 +192,11 @@ public class Utils {
         return dto;
     }
 
-    public Usuario getUsuarioByToken(String token){
+    public Usuario getUsuarioByToken(String token) {
         String usuarioString = jwt.obterLoginUsuario(token);
-        Usuario usuario = usuarioRepository.findByLogin(usuarioString).orElseThrow(() -> new AlgoNaoEncontradoException(HttpStatus.NOT_FOUND, "Usuário não encontrado com o token fornecido"));
+        Usuario usuario = usuarioRepository.findByLogin(usuarioString)
+                .orElseThrow(() -> new AlgoNaoEncontradoException(HttpStatus.NOT_FOUND,
+                        "Usuário não encontrado com o token fornecido"));
         return usuario;
     }
 
@@ -213,10 +210,9 @@ public class Utils {
     public void validateAdmin(Post post, String token) {
         Usuario usuario = getUsuarioByToken(token);
         if (!post.getAdmin().equals(usuario)) {
-            throw new UnauthorizedUpdateException(HttpStatus.FORBIDDEN ,  "Not authorized to update this post");
+            throw new UnauthorizedUpdateException(HttpStatus.FORBIDDEN, "Not authorized to update this post");
         }
     }
-
 
     public List<PostDTO> convertPostsToDTOs(List<Post> posts) {
         List<PostDTO> dto = new ArrayList<>();

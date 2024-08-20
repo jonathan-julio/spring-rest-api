@@ -3,7 +3,9 @@ package com.jonathan.springrestapiapp.rest.dto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -34,6 +36,8 @@ import jakarta.persistence.OneToOne;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@Getter
+@Setter
 public class ProfileDTO {
     private Integer id;
     private String texto;
@@ -41,4 +45,6 @@ public class ProfileDTO {
     private String about;
     private String color;
     private String background;
+    private String isHtml;
+    private String html;
 }

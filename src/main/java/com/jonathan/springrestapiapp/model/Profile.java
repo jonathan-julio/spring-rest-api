@@ -56,6 +56,11 @@ public class Profile {
     private String color;
     private String background;
 
+    private boolean isHtml;
+
+    @Column(columnDefinition = "TEXT")
+    private String html;
+
     @OneToOne
     private Person person;
 
