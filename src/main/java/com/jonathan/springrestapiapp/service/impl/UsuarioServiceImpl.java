@@ -252,7 +252,7 @@ public class UsuarioServiceImpl implements UserDetailsService {
         List<Usuario> usuarios = utils.usuarioRepository.findAll();
         for (Usuario usuario : usuarios) {
             UsuarioDTO user = UsuarioDTO.builder()
-                    .id(usuario.getPerson().getProfile().getId())
+                    .id(usuario.getId())
                     .login(usuario.getLogin())
                     .build();
             usuarioDTOs.add(user);
