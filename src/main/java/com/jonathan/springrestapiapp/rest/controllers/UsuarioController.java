@@ -58,7 +58,8 @@ public class UsuarioController {
     public ResponseEntity<Object> salvar(@RequestBody UserCreaterDTO usuario) {
         try {
             Usuario createdUsuario = usuarioService.created(usuario);
-            return ResponseEntity.ok(createdUsuario);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(createdUsuario);
         } catch (MyException e) {
             return ResponseEntity.status(e.getCode())
                     .body(Collections.singletonMap("errors", List.of("Erro na criação do usuário: " + e.getMessage())));

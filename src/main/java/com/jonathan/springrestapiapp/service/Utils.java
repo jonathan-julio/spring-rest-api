@@ -78,11 +78,11 @@ public class Utils {
         Image img = new Image();
         try {
             img.setImage(file.getBytes());
-            return " https://80bc-177-89-225-229.ngrok-free.app/image/view/" + imageService.save(img).getId();
+            return " http://localhost:8080/image/view/" + imageService.save(img).getId();
 
         } catch (IOException e) {
             e.printStackTrace();
-            return " https://80bc-177-89-225-229.ngrok-free.app/image/view/1";
+            return " http://localhost:8080/image/view/1";
         }
     }
 
